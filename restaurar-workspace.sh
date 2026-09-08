@@ -1,40 +1,37 @@
-#!/bin/bash
-# restaurar-workspace.sh
+# restaurar-workspace.ps1
 
 # Volver a la carpeta contenedora principal (un nivel arriba de /infra)
 cd ..
 
-echo "================================================================="
-echo " Reconstruyendo el Workspace de BarrioDigital..."
-echo "================================================================="
+Write-Host "=================================================================" -ForegroundColor Cyan
+Write-Host " Reconstruyendo el Workspace de BarrioDigital (Windows)..." -ForegroundColor Cyan
+Write-Host "=================================================================" -ForegroundColor Cyan
 
-# IMPORTANTÍSIMO: Reemplacen esta variable con el nombre de su usuario 
-# o de la organización de GitHub donde crearon sus repositorios
-GITHUB_USER="BarrioDigital"
+# Reemplaza con tu organización o usuario de GitHub
+$GITHUB_USER="REEMPLAZAR_CON_SU_USUARIO_O_ORGANIZACION_DE_GITHUB"
 
-# Lista de repositorios oficiales requeridos por la pauta de evaluación
-REPOS=(
-  "frontend-barriodigital"
-  "ms-barriodigital-bff"
-  "ms-barriodigital-requests"
-  "ms-barriodigital-catalog"
-  "ms-barriodigital-notify"
-  "ms-barriodigital-report"
-  "ms-barriodigital-audit"
+# Lista de repositorios
+$REPOS = @(
+  "frontend-barriodigital",
+  "ms-barriodigital-bff",
+  "ms-barriodigital-requests",
+  "ms-barriodigital-catalog",
+  "ms-barriodigital-notify",
+  "ms-barriodigital-report",
+  "ms-barriodigital-audit",
   "docs"
 )
 
-# Bucle para clonar cada uno de los repositorios de forma automática
-for REPO in "${REPOS[@]}"
-do
-  if [ -d "$REPO" ]; then
-    echo "--> El repositorio '$REPO' ya existe en este workspace. Omitiendo clonación..."
-  else
-    echo "--> Clonando '$REPO' desde GitHub..."
-    git clone "https://github.com/$GITHUB_USER/$REPO.git"
-  fi
-done
+# Bucle para clonar de forma automática
+foreach ($REPO in $REPOS) {
+    if (Test-Path $REPO) {
+        Write-Host "--> El repositorio '$REPO' ya existe. Omitiendo..." -ForegroundColor Yellow
+    } else {
+        Write-Host "--> Clonando '$REPO' desde GitHub..." -ForegroundColor Green
+        git clone "https://github.com/$GITHUB_USER/$REPO.git"
+    }
+}
 
-echo "================================================================="
-echo " ¡Workspace completamente restaurado y listo para programar!     "
-echo "================================================================="
+Write-Host "=================================================================" -ForegroundColor Cyan
+Write-Host " ¡Workspace completamente restaurado y listo!                    " -ForegroundColor Cyan
+Write-Host "=================================================================" -ForegroundColor Cyan
