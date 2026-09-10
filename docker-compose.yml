@@ -71,7 +71,7 @@ services:
   # Requerido por esta versión de Kafka
   # ======================================================
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.3.0
+    image: confluentinc/cp-zookeeper:7.5.0
     container_name: barriodigital-zookeeper
     restart: always
 
@@ -88,7 +88,7 @@ services:
   # Streaming de eventos
   # ======================================================
   kafka:
-    image: confluentinc/cp-kafka:7.3.0
+    image: confluentinc/cp-kafka:7.5.0
     container_name: barriodigital-kafka
     restart: always
 
@@ -128,7 +128,7 @@ services:
   # INICIALIZACIÓN DE TOPICS KAFKA
   # ======================================================
   init-kafka:
-    image: confluentinc/cp-kafka:7.3.0
+    image: confluentinc/cp-kafka:7.5.0
     container_name: barriodigital-kafka-init
 
     depends_on:
