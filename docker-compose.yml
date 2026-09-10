@@ -1,91 +1,221 @@
-version: '3.8'
+version: "3.8"
 
 services:
+
+  # ======================================================
+  # MYSQL
+  # Base de datos general para todos los microservicios
+  # ======================================================
   mysql-db:
     image: mysql:8.0
     container_name: barriodigital-mysql
     restart: always
+
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: db_barriodigital
       MYSQL_USER: barriouser
       MYSQL_PASSWORD: barriopassword
+
     ports:
       - "3307:3306"
+
     volumes:
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - mysql_data:/var/lib/mysql
+
     networks:
       - barriodigital-network
 
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-prootpassword"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+
+  # ======================================================
+  # RABBITMQ
+  # Mensajería asíncrona
+  # ======================================================
   rabbitmq:
     image: rabbitmq:3.12-management
     container_name: barriodigital-rabbitmq
     restart: always
+
     ports:
       - "5672:5672"
       - "15672:15672"
+
     volumes:
       - ./mq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
       - ./mq/definitions.json:/etc/rabbitmq/definitions.json:ro
+
     networks:
       - barriodigital-network
 
+
+  # ======================================================
+  # ZOOKEEPER
+  # Requerido por esta versión de Kafka
+  # ======================================================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     container_name: barriodigital-zookeeper
+    restart: always
+
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+
     networks:
       - barriodigital-network
 
+
+  # ======================================================
+  # KAFKA
+  # Streaming de eventos
+  # ======================================================
   kafka:
     image: confluentinc/cp-kafka:7.3.0
     container_name: barriodigital-kafka
+    restart: always
+
     depends_on:
       - zookeeper
+
     ports:
-      - "9092:9092"
+      # Puerto para acceder desde el computador host
+      - "29092:29092"
+
     environment:
       KAFKA_BROKER_ID: 1
+
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+
+      # Listener utilizado dentro de Docker
+      # y listener utilizado desde localhost
+      KAFKA_ADVERTISED_LISTENERS: >
+        PLAINTEXT://kafka:9092,
+        PLAINTEXT_HOST://localhost:29092
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: >
+        PLAINTEXT:PLAINTEXT,
+        PLAINTEXT_HOST:PLAINTEXT
+
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
     networks:
       - barriodigital-network
 
+
+  # ======================================================
+  # INICIALIZACIÓN DE TOPICS KAFKA
+  # ======================================================
   init-kafka:
     image: confluentinc/cp-kafka:7.3.0
+    container_name: barriodigital-kafka-init
+
     depends_on:
       - kafka
-    entrypoint: [ "/bin/sh", "-c" ]
+
+    entrypoint:
+      - /bin/sh
+      - -c
+
     command: |
-      "
-      kafka-topics --bootstrap-server kafka:9092 --list
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic requests.events --partitions 3 --replication-factor 1
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic audit.timeline --partitions 3 --replication-factor 1
-      "
+      echo "Esperando que Kafka esté disponible..."
+
+      until kafka-topics \
+        --bootstrap-server kafka:9092 \
+        --list > /dev/null 2>&1;
+      do
+        echo "Kafka todavía no está disponible..."
+        sleep 5
+      done
+
+      echo "Kafka disponible."
+
+      echo "Creando tópico requests.events..."
+
+      kafka-topics \
+        --bootstrap-server kafka:9092 \
+        --create \
+        --if-not-exists \
+        --topic requests.events \
+        --partitions 3 \
+        --replication-factor 1
+
+      echo "Creando tópico audit.timeline..."
+
+      kafka-topics \
+        --bootstrap-server kafka:9092 \
+        --create \
+        --if-not-exists \
+        --topic audit.timeline \
+        --partitions 3 \
+        --replication-factor 1
+
+      echo "Topics existentes:"
+
+      kafka-topics \
+        --bootstrap-server kafka:9092 \
+        --list
+
     networks:
       - barriodigital-network
 
+
+  # ======================================================
+  # KAFKA UI
+  # Interfaz gráfica para revisar topics y mensajes
+  # ======================================================
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: barriodigital-kafka-ui
+    restart: always
+
     depends_on:
       - kafka
+
     ports:
       - "8090:8080"
+
     environment:
-      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_NAME: barriodigital
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+
     networks:
       - barriodigital-network
 
+
+# ========================================================
+# VOLÚMENES
+# ========================================================
 volumes:
   mysql_data:
+    name: barriodigital-mysql-data
 
+
+# ========================================================
+# RED GENERAL DE BARRIODIGITAL
+# ========================================================
 networks:
   barriodigital-network:
     name: barriodigital-network
-    driver: bridge # Al levantar este compose, Docker creará esta red automáticamente
+    driver: bridge
