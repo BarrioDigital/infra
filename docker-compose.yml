@@ -130,53 +130,9 @@ services:
   init-kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: barriodigital-kafka-init
-
     depends_on:
       - kafka
-
-    entrypoint:
-      - /bin/sh
-      - -c
-
-    command: |
-      echo "Esperando que Kafka esté disponible..."
-
-      until kafka-topics \
-        --bootstrap-server kafka:9092 \
-        --list > /dev/null 2>&1;
-      do
-        echo "Kafka todavía no está disponible..."
-        sleep 5
-      done
-
-      echo "Kafka disponible."
-
-      echo "Creando tópico requests.events..."
-
-      kafka-topics \
-        --bootstrap-server kafka:9092 \
-        --create \
-        --if-not-exists \
-        --topic requests.events \
-        --partitions 3 \
-        --replication-factor 1
-
-      echo "Creando tópico audit.timeline..."
-
-      kafka-topics \
-        --bootstrap-server kafka:9092 \
-        --create \
-        --if-not-exists \
-        --topic audit.timeline \
-        --partitions 3 \
-        --replication-factor 1
-
-      echo "Topics existentes:"
-
-      kafka-topics \
-        --bootstrap-server kafka:9092 \
-        --list
-
+    entrypoint: [ "/bin/sh", "-c", "echo 'Esperando que Kafka este disponible...'; until kafka-topics --bootstrap-server kafka:9092 --list > /dev/null 2>&1; do sleep 3; done; echo 'Kafka disponible. Creando topicos...'; kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic requests.events --partitions 3 --replication-factor 1; kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic audit.timeline --partitions 3 --replication-factor 1; echo 'Topicos creados exitosamente:'; kafka-topics --bootstrap-server kafka:9092 --list" ]
     networks:
       - barriodigital-network
 
