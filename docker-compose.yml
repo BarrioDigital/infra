@@ -1,10 +1,7 @@
 version: "3.8"
 
 services:
-  # ======================================================
-  # RABBITMQ
-  # Mensajería asíncrona (Management UI en puerto 15672)
-  # ======================================================
+  # RabbitMQ con Management UI
   rabbitmq:
     image: rabbitmq:3.12-management
     container_name: barriodigital-rabbitmq
@@ -12,18 +9,12 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
     volumes:
-      - ./mq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
       - ./mq/definitions.json:/etc/rabbitmq/definitions.json:ro
     networks:
       - barriodigital-network
-  # ======================================================
-  # ZOOKEEPER
-  # Coordinador para el clúster de Kafka
-  # ======================================================
+
+  # Zookeeper para clúster de Kafka
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: barriodigital-zookeeper
@@ -34,10 +25,7 @@ services:
     networks:
       - barriodigital-network
 
-  # ======================================================
-  # KAFKA
-  # Streaming de eventos (requests.events y audit.timeline)
-  # ======================================================
+  # Broker de Kafka
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: barriodigital-kafka
@@ -56,29 +44,17 @@ services:
     networks:
       - barriodigital-network
 
-  # ======================================================
-  # INICIALIZACIÓN AUTOMÁTICA DE TÓPICOS KAFKA
-  # ======================================================
+  # Inicialización automática de Tópicos Kafka
   init-kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: barriodigital-kafka-init
     depends_on:
       - kafka
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        echo 'Esperando Kafka...';
-        until kafka-topics --bootstrap-server kafka:9092 --list > /dev/null 2>&1; do sleep 3; done;
-        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic requests.events --partitions 3 --replication-factor 1;
-        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic audit.timeline --partitions 3 --replication-factor 1;
+    entrypoint: [ "/bin/sh", "-c", "echo 'Esperando Kafka...'; until kafka-topics --bootstrap-server kafka:9092 --list > /dev/null 2>&1; do sleep 3; done; kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic requests.events --partitions 3 --replication-factor 1; kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic audit.timeline --partitions 3 --replication-factor 1;" ]
     networks:
       - barriodigital-network
 
-  # ======================================================
-  # KAFKA UI
-  # Interfaz gráfica para inspección visual (puerto 8090)
-  # ======================================================
+  # Kafka UI para inspección visual
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: barriodigital-kafka-ui
@@ -93,9 +69,6 @@ services:
     networks:
       - barriodigital-network
 
-# ========================================================
-# RED GENERAL DE BARRIODIGITAL
-# ========================================================
 networks:
   barriodigital-network:
     driver: bridge
