@@ -8,54 +8,36 @@ services:
     image: rabbitmq:3.12-management
     container_name: barriodigital-rabbitmq
     restart: always
-
     ports:
       - "5672:5672"
       - "15672:15672"
-
     volumes:
-      - ./mq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
       - ./mq/definitions.json:/etc/rabbitmq/definitions.json:ro
-
     networks:
       - barriodigital-network
 
-
-  # ======================================================
-  # ZOOKEEPER
-  # Requerido por esta versión de Kafka
-  # ======================================================
+  # Zookeeper para clúster de Kafka
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: barriodigital-zookeeper
     restart: always
-
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-
     networks:
       - barriodigital-network
 
-
-  # ======================================================
-  # KAFKA
-  # Streaming de eventos
-  # ======================================================
+  # Broker de Kafka
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: barriodigital-kafka
     restart: always
-
     depends_on:
       - zookeeper
-
     ports:
       - "29092:29092"
-
     environment:
       KAFKA_BROKER_ID: 1
-
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
       KAFKA_ADVERTISED_LISTENERS: >
@@ -67,18 +49,11 @@ services:
         PLAINTEXT_HOST:PLAINTEXT
 
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-
     networks:
       - barriodigital-network
 
-
-  # ======================================================
-  # INICIALIZACIÓN DE TOPICS KAFKA
-  # ======================================================
+  # Inicialización automática de Tópicos Kafka
   init-kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: barriodigital-kafka-init
@@ -119,17 +94,13 @@ services:
     image: provectuslabs/kafka-ui:latest
     container_name: barriodigital-kafka-ui
     restart: always
-
     depends_on:
       - kafka
-
     ports:
       - "8090:8080"
-
     environment:
       KAFKA_CLUSTERS_0_NAME: barriodigital
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-
     networks:
       - barriodigital-network
 
@@ -139,5 +110,4 @@ services:
 # ========================================================
 networks:
   barriodigital-network:
-    name: barriodigital-network
     driver: bridge
