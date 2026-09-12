@@ -1,49 +1,4 @@
-version: "3.8"
-
 services:
-
-  # ======================================================
-  # MYSQL
-  # Base de datos general para todos los microservicios
-  # ======================================================
-  mysql-db:
-    image: mysql:8.0
-    container_name: barriodigital-mysql
-    restart: always
-
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: db_barriodigital
-      MYSQL_USER: barriouser
-      MYSQL_PASSWORD: barriopassword
-
-    ports:
-      - "3307:3306"
-
-    volumes:
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      - mysql_data:/var/lib/mysql
-
-    networks:
-      - barriodigital-network
-
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost",
-          "-u",
-          "root",
-          "-prootpassword"
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-
 
   # ======================================================
   # RABBITMQ
@@ -96,7 +51,6 @@ services:
       - zookeeper
 
     ports:
-      # Puerto para acceder desde el computador host
       - "29092:29092"
 
     environment:
@@ -104,8 +58,6 @@ services:
 
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
-      # Listener utilizado dentro de Docker
-      # y listener utilizado desde localhost
       KAFKA_ADVERTISED_LISTENERS: >
         PLAINTEXT://kafka:9092,
         PLAINTEXT_HOST://localhost:29092
@@ -130,16 +82,38 @@ services:
   init-kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: barriodigital-kafka-init
+
     depends_on:
       - kafka
-    entrypoint: [ "/bin/sh", "-c", "echo 'Esperando que Kafka este disponible...'; until kafka-topics --bootstrap-server kafka:9092 --list > /dev/null 2>&1; do sleep 3; done; echo 'Kafka disponible. Creando topicos...'; kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic requests.events --partitions 3 --replication-factor 1; kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic audit.timeline --partitions 3 --replication-factor 1; echo 'Topicos creados exitosamente:'; kafka-topics --bootstrap-server kafka:9092 --list" ]
+
+    entrypoint:
+      [
+        "/bin/sh",
+        "-c",
+        "echo 'Esperando que Kafka este disponible...'; \
+        until kafka-topics --bootstrap-server kafka:9092 --list > /dev/null 2>&1; \
+        do sleep 3; done; \
+        echo 'Kafka disponible. Creando topicos...'; \
+        kafka-topics --bootstrap-server kafka:9092 \
+        --create --if-not-exists \
+        --topic requests.events \
+        --partitions 3 \
+        --replication-factor 1; \
+        kafka-topics --bootstrap-server kafka:9092 \
+        --create --if-not-exists \
+        --topic audit.timeline \
+        --partitions 3 \
+        --replication-factor 1; \
+        echo 'Topicos creados exitosamente:'; \
+        kafka-topics --bootstrap-server kafka:9092 --list"
+      ]
+
     networks:
       - barriodigital-network
 
 
   # ======================================================
   # KAFKA UI
-  # Interfaz gráfica para revisar topics y mensajes
   # ======================================================
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -161,15 +135,7 @@ services:
 
 
 # ========================================================
-# VOLÚMENES
-# ========================================================
-volumes:
-  mysql_data:
-    name: barriodigital-mysql-data
-
-
-# ========================================================
-# RED GENERAL DE BARRIODIGITAL
+# RED GENERAL
 # ========================================================
 networks:
   barriodigital-network:
