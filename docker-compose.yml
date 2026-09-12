@@ -13,10 +13,10 @@ services:
       - "5672:5672"
       - "15672:15672"
     volumes:
+      - ./mq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
       - ./mq/definitions.json:/etc/rabbitmq/definitions.json:ro
     networks:
       - barriodigital-network
-
   # ======================================================
   # ZOOKEEPER
   # Coordinador para el clúster de Kafka
