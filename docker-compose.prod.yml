@@ -92,10 +92,10 @@ services:
       - barriodigital-network
 
   # ======================================================
-  # 2. MICROSERVICIOS Y FRONTEND (Imágenes de AWS ECR)
+  # 2. MICROSERVICIOS Y FRONTEND (Imágenes de AWS ECR) (verificar acount id y region de cada service en "Image")
   # ======================================================
   catalog-service:
-    image: <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/barrio-digital/catalog:latest
+    image: 726357411862.dkr.ecr.us-east-1.amazonaws.com/barrio-digital/catalog:latest
     container_name: barriodigital-catalog
     restart: always
     depends_on:
@@ -110,7 +110,7 @@ services:
       - barriodigital-network
 
   requests-service:
-    image: <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/barrio-digital/requests:latest
+    image: 726357411862.dkr.ecr.us-east-1.amazonaws.com/barrio-digital/requests:latest
     container_name: barriodigital-requests
     restart: always
     depends_on:
@@ -125,7 +125,7 @@ services:
       - barriodigital-network
 
   frontend:
-    image: <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/barrio-digital/frontend:latest
+    image: 726357411862.dkr.ecr.us-east-1.amazonaws.com/barrio-digital/frontend:latest
     container_name: barriodigital-frontend
     restart: always
     ports:
