@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  # ======================================================
+  # 1. INFRAESTRUCTURA BASE
+  # ======================================================
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: barriodigital-rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ./mq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    networks:
+      - barriodigital-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: barriodigital-zookeeper
+    restart: always
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - barriodigital-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: barriodigital-kafka
+    restart: always
+    depends_on:
+      - zookeeper
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: >
+        PLAINTEXT://kafka:9092,
+        PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: >
+        PLAINTEXT:PLAINTEXT,
+        PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - barriodigital-network
+
+  init-kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: barriodigital-kafka-init
+    depends_on:
+      - kafka
+    entrypoint:
+      [
+        "/bin/sh",
+        "-c",
+        "echo 'Esperando que Kafka este disponible...'; \
+        until kafka-topics --bootstrap-server kafka:9092 --list > /dev/null 2>&1; \
+        do sleep 3; done; \
+        echo 'Kafka disponible. Creando topicos...'; \
+        kafka-topics --bootstrap-server kafka:9092 \
+        --create --if-not-exists \
+        --topic requests.events \
+        --partitions 3 \
+        --replication-factor 1; \
+        kafka-topics --bootstrap-server kafka:9092 \
+        --create --if-not-exists \
+        --topic audit.timeline \
+        --partitions 3 \
+        --replication-factor 1; \
+        echo 'Topicos creados exitosamente:'; \
+        kafka-topics --bootstrap-server kafka:9092 --list"
+      ]
+    networks:
+      - barriodigital-network
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: barriodigital-kafka-ui
+    restart: always
+    depends_on:
+      - kafka
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: barriodigital
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    networks:
+      - barriodigital-network
+
+  # ======================================================
+  # 2. MICROSERVICIOS Y FRONTEND (Imágenes de AWS ECR)
+  # ======================================================
+  catalog-service:
+    image: <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/barrio-digital/catalog:latest
+    container_name: barriodigital-catalog
+    restart: always
+    depends_on:
+      - rabbitmq
+      - kafka
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    networks:
+      - barriodigital-network
+
+  requests-service:
+    image: <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/barrio-digital/requests:latest
+    container_name: barriodigital-requests
+    restart: always
+    depends_on:
+      - rabbitmq
+      - kafka
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    networks:
+      - barriodigital-network
+
+  frontend:
+    image: <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/barrio-digital/frontend:latest
+    container_name: barriodigital-frontend
+    restart: always
+    ports:
+      - "80:80"
+    networks:
+      - barriodigital-network
+
+networks:
+  barriodigital-network:
+    driver: bridge
