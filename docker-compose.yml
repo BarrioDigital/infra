@@ -86,7 +86,6 @@ services:
     networks:
       - barriodigital-network
 
-
   # ======================================================
   # KAFKA UI
   # ======================================================
@@ -104,6 +103,37 @@ services:
     networks:
       - barriodigital-network
 
+  # ======================================================
+  # MICROSERVICIO AUDIT (Puerto 8084)
+  # ======================================================
+  ms-barriodigital-audit:
+    build: ../ms-barriodigital-audit
+    container_name: barriodigital-audit
+    restart: always
+    ports:
+      - "8084:8084"
+    depends_on:
+      - kafka
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    networks:
+      - barriodigital-network
+
+  # ======================================================
+  # MICROSERVICIO REPORT (Puerto 8085)
+  # ======================================================
+  ms-barriodigital-report:
+    build: ../ms-barriodigital-report
+    container_name: barriodigital-report
+    restart: always
+    ports:
+      - "8085:8085"
+    depends_on:
+      - kafka
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    networks:
+      - barriodigital-network
 
 # ========================================================
 # RED GENERAL
