@@ -87,7 +87,7 @@ services:
       - barriodigital-network
 
   # ======================================================
-  # MICROSERVICIOS (DESPLIEGUE AWS ECR)
+  # MICROSERVICIOS BACKEND (DESPLIEGUE AWS ECR)
   # ======================================================
   ms-barriodigital-catalog:
     image: 726357411862.dkr.ecr.us-east-1.amazonaws.com/ms-barriodigital-catalog:latest
@@ -109,6 +109,20 @@ services:
       - rabbitmq
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_RABBITMQ_HOST: rabbitmq
+    networks:
+      - barriodigital-network
+
+  ms-barriodigital-notify:
+    image: 726357411862.dkr.ecr.us-east-1.amazonaws.com/ms-barriodigital-notify:latest
+    container_name: barriodigital-notify
+    restart: always
+    ports:
+      - "8083:8083"
+    depends_on:
+      - rabbitmq
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitmq
     networks:
       - barriodigital-network
 

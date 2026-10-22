@@ -8,12 +8,11 @@ Write-Host " Reconstruyendo el Workspace de BarrioDigital (Windows)..." -Foregro
 Write-Host "=================================================================" -ForegroundColor Cyan
 
 # Reemplaza con tu organización o usuario de GitHub
-$GITHUB_USER="BarrioDigital"
+$GITHUB_USER="BarrioDigitalFelix"
 
 # Lista de repositorios
 $REPOS = @(
   "frontend-barriodigital",
-  "ms-barriodigital-bff",
   "ms-barriodigital-requests",
   "ms-barriodigital-catalog",
   "ms-barriodigital-notify",
