@@ -58,7 +58,9 @@
       "auto_delete": false,
       "arguments": {
         "x-dead-letter-exchange": "cmd.dead.dlx",
-        "x-dead-letter-routing-key": "email.dead"
+        "x-dead-letter-routing-key": "email.dead",
+        "x-max-length": 1000,
+        "x-message-ttl": 86400000
       }
     },
     {
@@ -75,7 +77,9 @@
       "auto_delete": false,
       "arguments": {
         "x-dead-letter-exchange": "cmd.dead.dlx",
-        "x-dead-letter-routing-key": "crew.dead"
+        "x-dead-letter-routing-key": "crew.dead",
+        "x-max-length": 1000,
+        "x-message-ttl": 86400000
       }
     },
     {
@@ -92,7 +96,9 @@
       "auto_delete": false,
       "arguments": {
         "x-dead-letter-exchange": "cmd.dead.dlx",
-        "x-dead-letter-routing-key": "certificate.dead"
+        "x-dead-letter-routing-key": "certificate.dead",
+        "x-max-length": 1000,
+        "x-message-ttl": 86400000
       }
     },
     {
